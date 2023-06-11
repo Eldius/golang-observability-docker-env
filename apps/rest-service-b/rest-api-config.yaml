@@ -1,5 +1,0 @@
----
-environment: simulation
-integration:
-  weather:
-    apikey: api-key

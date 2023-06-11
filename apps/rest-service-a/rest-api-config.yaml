@@ -1,8 +1,0 @@
----
-db:
-  user: rest_api
-  port: 5432
-  database: rest_api
-  migrations:
-    enabled: true
-environment: simulation

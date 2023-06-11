@@ -6,13 +6,13 @@ APPS := $(wildcard apps/*/.)
 APIS := $(wildcard apps/rest-service*/.)
 
 env-jaeger-down: services-down
-	cd docker-environment/jaeger ; docker compose \
+	cd ./jaeger ; docker compose \
 		-f docker-compose-jaeger.yml \
 		-f ../docker-compose-db.yml \
 		down
 
 env-jaeger: env-jaeger-down
-	cd docker-environment/jaeger ; docker compose \
+	cd ./jaeger ; docker compose \
 		-f docker-compose-jaeger.yml \
 		-f ../docker-compose-db.yml \
 		up \
@@ -20,13 +20,13 @@ env-jaeger: env-jaeger-down
 			--build
 
 env-opensearch-down: services-down
-	cd docker-environment/opensearch ; docker compose \
+	cd ./opensearch ; docker compose \
 		-f docker-compose-opensearch.yml \
 		-f ../docker-compose-db.yml \
 		down
 
 env-opensearch: env-opensearch-down
-	cd docker-environment/opensearch ; docker compose \
+	cd ./opensearch ; docker compose \
 		-f docker-compose-opensearch.yml \
 		-f ../docker-compose-db.yml \
 		up \
@@ -98,8 +98,8 @@ exporting:
 		--name data-prepper \
 		--rm \
 		-p 4900:4900 \
-		-v ${PWD}/docker-environment/opensearch/configs/data:/usr/share/data-prepper/data \
-		-v ${PWD}/docker-environment/opensearch/configs/logstash.conf:/usr/share/data-prepper/pipelines/pipelines.conf opensearchproject/data-prepper:latest
+		-v ${PWD}/./opensearch/configs/data:/usr/share/data-prepper/data \
+		-v ${PWD}/./opensearch/configs/logstash.conf:/usr/share/data-prepper/pipelines/pipelines.conf opensearchproject/data-prepper:latest
 
 test-logs:
 	docker run \
@@ -129,50 +129,3 @@ test:
 		--tty \
 		--restart=Never \
 		--command -- sh
-
-ks-terraform-opensearch-apply: ks-terraform-opensearch-init
-	cd k3s-environment/terraform ; ELASTICSEARCH_USERNAME=admin \
-		ELASTICSEARCH_PASSWORD=admin \
-		ELASTICSEARCH_URL=https://$(OPENSEARCH_IP):9200 \
-			TF_LOG=debug terraform apply
-
-ks-terraform-opensearch-init:
-	cd k3s-environment/terraform ; ELASTICSEARCH_USERNAME=admin \
-		ELASTICSEARCH_PASSWORD=admin \
-		ELASTICSEARCH_URL=https://$(OPENSEARCH_IP):9200 \
-			terraform init
-
-ks-terraform-opensearch-destroy: ks-terraform-opensearch-init
-	cd k3s-environment/terraform ; ELASTICSEARCH_USERNAME=admin \
-		ELASTICSEARCH_PASSWORD=admin \
-		ELASTICSEARCH_URL=https://$(OPENSEARCH_IP):9200 \
-			terraform destroy
-
-jaeger-test:
-	docker run \
-		--rm \
-		--name jaeger-quyery \
-		-m 16m \
-		-p 16687:16687 \
-		-p 16686:16686 \
-		-e SPAN_STORAGE_TYPE=elasticsearch \
-		-e ES_SERVER_URLS=https://$(OPENSEARCH_IP):9200 \
-		--log-driver=fluentd \
-		--log-opt fluentd-address=192.168.0.36:24224 \
-		-v "$(PWD)/docker-environment/opensearch/configs/root-ca.pem:/root-ca.pem:ro" \
-			jaegertracing/jaeger-query:latest \
-				--es.tls.skip-host-verify \
-				--es.tls.ca "/root-ca.pem" \
-				--admin.http.host-port ":16687" \
-				--es.tls.enabled \
-				--es.username admin \
-				--es.password admin
-
-	# docker run -d --rm \
-	# -p 16686:16686 \
-	# -p 16687:16687 \
-	# -e SPAN_STORAGE_TYPE=elasticsearch \
-	# -e ES_SERVER_URLS=https://$(OPENSEARCH_IP):9200 \
-	# jaegertracing/jaeger-query:1.18
-
-#jaeger-query
